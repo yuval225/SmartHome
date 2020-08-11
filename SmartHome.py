@@ -1,6 +1,7 @@
 import socket
 import subprocess
 import platform
+import struct
 
 """
 *CONSTS*
@@ -9,7 +10,7 @@ import platform
 PC_IPADDR = "10.0.0.100"
 PC_OPENPORT = 5050
 PHONE_IP = '10.0.0.12'
-PC_MACADDR = "ENTER PC MAC ADDRESS"
+PC_MACADDR = "10:20:30:40:50:60"
 
 
 def sendMagicPacket():
@@ -17,9 +18,18 @@ def sendMagicPacket():
     function sends a magic packet to wake up the client computer.
     magic packet = 6 Full bytes (FF) + Device mac address.
     """
-    magicMessage = "FFFFFFFFFFFF" + PC_MACADDR.replace(':','')
-    sock = socket.socket(socket.AF_INET,socket.SOCK_DGRAM)
-    sock.sendto(bytes.fromhex(magicMessage),(PC_IPADDR,PC_OPENPORT))
+    splitMac = str.split(PC_MACADDR,':')
+
+    hexMac = struct.pack('BBBBBB', int(splitMac[0], 16),
+                                     int(splitMac[1], 16),
+                                     int(splitMac[2], 16),
+                                     int(splitMac[3], 16),
+                                     int(splitMac[4], 16),
+                                     int(splitMac[5], 16))
+
+    magicPacket = '\xff' * 6 + hexMac * 16
+    with socket.socket(socket.AF_INET,socket.SOCK_DGRAM) as sock:
+        sock.sendto(magicPacket,(PC_IPADDR,PC_OPENPORT))
 
  
 def ping_ip(current_ip_address):
@@ -42,21 +52,22 @@ if __name__ == '__main__':
     clientStatus = False
 
     if ping_ip(PHONE_IP):
-        print("Client is connected to wifi")
+        print("Client is currently at home.")
         clientStatus = True
     else:
-        print("Client is disconnected from wifi")
+        print("Client isn`t home.")
         clientStatus = False
 
     prevStatus = clientStatus
 
     while(True):
         if ping_ip(PHONE_IP):
-            print("Client is connected to wifi")
+            print("Client is currently at home.")
             clientStatus = True
         else:
-            print("Client is disconnected from wifi")
+            print("Client isn`t home.")
             clientStatus = False
         if clientStatus != prevStatus and clientStatus:
+            print("Client just arrived at home, waking up pc with magic packet.")
             sendMagicPacket()
         prevStatus = clientStatus
