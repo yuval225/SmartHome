@@ -8,7 +8,7 @@ import struct
 """
 
 PC_IPADDR = "10.0.0.100"
-PC_OPENPORT = 5050
+PC_OPENPORT = 7
 PHONE_IP = '10.0.0.12'
 PC_MACADDR = "10:20:30:40:50:60"
 
@@ -18,16 +18,8 @@ def sendMagicPacket():
     function sends a magic packet to wake up the client computer.
     magic packet = 6 Full bytes (FF) + Device mac address.
     """
-    splitMac = str.split(PC_MACADDR,':')
-
-    hexMac = struct.pack('BBBBBB', int(splitMac[0], 16),
-                                     int(splitMac[1], 16),
-                                     int(splitMac[2], 16),
-                                     int(splitMac[3], 16),
-                                     int(splitMac[4], 16),
-                                     int(splitMac[5], 16))
-
-    magicPacket = '\xff' * 6 + hexMac * 16
+    macAddr = PC_MACADDR.replace(PC_MACADDR[2],'')
+    magicPacket = bytes.fromhex("FF" * 6 + macAddr * 16)
     with socket.socket(socket.AF_INET,socket.SOCK_DGRAM) as sock:
         sock.sendto(magicPacket,(PC_IPADDR,PC_OPENPORT))
 
@@ -49,8 +41,9 @@ def ping_ip(current_ip_address):
             return False
 
 if __name__ == '__main__':
-    clientStatus = False
-
+    
+    clientStatus = False    
+    
     if ping_ip(PHONE_IP):
         print("Client is currently at home.")
         clientStatus = True
@@ -68,6 +61,11 @@ if __name__ == '__main__':
             print("Client isn`t home.")
             clientStatus = False
         if clientStatus != prevStatus and clientStatus:
+            #Actions to do when client arrive home
             print("Client just arrived at home, waking up pc with magic packet.")
             sendMagicPacket()
+        elif clientStatus != prevStatus and not clientStatus:
+            #Actions to do when client leaves home
+            print("Client just left home")
+
         prevStatus = clientStatus
